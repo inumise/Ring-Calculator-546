@@ -12,7 +12,7 @@ import {
   Gem, CircleDot, Sparkles, DollarSign, 
   ShoppingCart, Settings, LogOut, Mail, Send, Trash2, 
   Eye, Globe, Palette, Lock, Menu, X, CheckCircle,
-  MessageSquare, Package, ImagePlus, Tag
+  MessageSquare, Package, ImagePlus, Tag, Upload
 } from 'lucide-react'
 
 type Language = 'cs' | 'en'
@@ -307,7 +307,7 @@ const RING_SIZES = ['3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13']
 const NECKLACE_LENGTHS = ['14"', '16"', '18"', '20"', '22"', '24"']
 const BRACELET_SIZES = ['6"', '7"', '8"', '9"']
 
-interface GemstoneEntry { id: string; type: string; cut: string; carat: number; quantity: number }
+interface GemstoneEntry { id: string; type: string; cut: string; carat: number; quantity: number; customPrice?: number; customName?: string }
 interface CartItem { id: string; jewelryType: string; metal: string; metalWeight: number; gemstones: GemstoneEntry[]; total: number; engraving: string; rushOrder: boolean; notes: string; quoteId: string }
 interface Order { id: string; items: CartItem[]; customer: { name: string; email: string; phone: string }; total: number; date: string; status: 'pending' | 'confirmed' | 'completed' }
 interface Message { id: string; name: string; email: string; phone: string; message: string; date: string }
@@ -387,9 +387,13 @@ function App() {
     const metalCost = metalWeight * metalData.price
     let totalGemCost = 0
     gemstones.forEach(gem => {
-      const gemData = GEMSTONE_PRICES[gem.type]
-      const cutData = GEMSTONE_CUTS[gem.cut]
-      if (gemData && cutData) totalGemCost += gemData.price * gem.carat * cutData.multiplier * gem.quantity
+      if (gem.type === 'custom' && gem.customPrice) {
+        totalGemCost += gem.customPrice * gem.quantity
+      } else {
+        const gemData = GEMSTONE_PRICES[gem.type]
+        const cutData = GEMSTONE_CUTS[gem.cut]
+        if (gemData && cutData) totalGemCost += gemData.price * gem.carat * cutData.multiplier * gem.quantity
+      }
     })
     const baseLabor = adminSettings.laborRate * jewelryData.laborMultiplier * (metalWeight / 5)
     const laborCost = baseLabor + (gemstones.length * adminSettings.laborRate * 0.5)
@@ -428,10 +432,20 @@ function App() {
     setGemListings([...gemListings, listing])
     setNewListing({ name: '', price: 0, image: '', description: '', carat: 1, cut: 'round_brilliant' })
   }
-  const deleteGemListing = (id: string) => setGemListings(gemListings.filter(l => l.id !== id))
-  const addListingToCalculation = (listing: GemListing) => {
-    setGemstones([...gemstones, { id: Date.now().toString(), type: 'custom', cut: listing.cut, carat: listing.carat, quantity: 1 }])
-  }
+    const deleteGemListing = (id: string) => setGemListings(gemListings.filter(l => l.id !== id))
+    const addListingToCalculation = (listing: GemListing) => {
+      setGemstones([...gemstones, { id: Date.now().toString(), type: 'custom', cut: listing.cut, carat: listing.carat, quantity: 1, customPrice: listing.price, customName: listing.name }])
+    }
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (file) {
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          setNewListing({ ...newListing, image: reader.result as string })
+        }
+        reader.readAsDataURL(file)
+      }
+    }
 
   const isRing = jewelryType.startsWith('ring_')
   const isNecklace = jewelryType.startsWith('necklace_')
@@ -856,7 +870,17 @@ function App() {
                                                     </Select>
                                                   </div>
                                                 </div>
-                                                <div className="space-y-2"><Label className="text-slate-300">{t.gemImage}</Label><Input value={newListing.image} onChange={(e) => setNewListing({ ...newListing, image: e.target.value })} placeholder="https://..." className="bg-slate-700 border-slate-600 text-white" /></div>
+                                                <div className="space-y-2">
+                                                  <Label className="text-slate-300">{t.gemImage}</Label>
+                                                  <div className="flex gap-2">
+                                                    <Input value={newListing.image} onChange={(e) => setNewListing({ ...newListing, image: e.target.value })} placeholder="https://..." className="bg-slate-700 border-slate-600 text-white flex-1" />
+                                                    <label className="cursor-pointer">
+                                                      <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                                                      <Button type="button" variant="outline" className="border-purple-500 text-purple-400 hover:bg-purple-500/20" asChild><span><Upload className="w-4 h-4 mr-2" />Upload</span></Button>
+                                                    </label>
+                                                  </div>
+                                                  {newListing.image && <img src={newListing.image} alt="Preview" className="w-24 h-24 object-cover rounded-lg mt-2" />}
+                                                </div>
                                                 <div className="space-y-2"><Label className="text-slate-300">{t.gemDescription}</Label><Textarea value={newListing.description} onChange={(e) => setNewListing({ ...newListing, description: e.target.value })} placeholder="..." className="bg-slate-700 border-slate-600 text-white" /></div>
                                                 <Button onClick={addGemListing} className="bg-purple-600 hover:bg-purple-700" disabled={!newListing.name || newListing.price <= 0}><ImagePlus className="w-4 h-4 mr-2" />{t.addListing}</Button>
                                               </div>
