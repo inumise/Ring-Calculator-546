@@ -12,7 +12,7 @@ import {
   Gem, CircleDot, Sparkles, DollarSign, 
   ShoppingCart, Settings, LogOut, Mail, Send, Trash2, 
   Eye, Globe, Palette, Lock, Menu, X, CheckCircle,
-  MessageSquare, Package
+  MessageSquare, Package, ImagePlus, Tag
 } from 'lucide-react'
 
 type Language = 'cs' | 'en'
@@ -106,6 +106,17 @@ const translations: Record<Language, Record<string, string>> = {
     english: 'English',
     calculator: 'Kalkulacka',
     alexMessage: 'Alex vas kontaktuje pro vasi krasu.',
+    listings: 'Nabidka',
+    inStock: 'Na Sklade',
+    addListing: 'Pridat Polozku',
+    gemName: 'Nazev Drahokamu',
+    gemPrice: 'Cena',
+    gemImage: 'Obrazek (URL)',
+    gemDescription: 'Popis',
+    noListings: 'Zadne polozky na sklade',
+    deleteListing: 'Smazat',
+    selectFromStock: 'Vybrat ze skladu',
+    addToCalculation: 'Pridat do kalkulace',
   },
   en: {
     title: 'Jewelry Cost Calculator',
@@ -195,6 +206,17 @@ const translations: Record<Language, Record<string, string>> = {
     english: 'English',
     calculator: 'Calculator',
     alexMessage: 'Alex will contact you for your beauty.',
+    listings: 'Listings',
+    inStock: 'In Stock',
+    addListing: 'Add Listing',
+    gemName: 'Gem Name',
+    gemPrice: 'Price',
+    gemImage: 'Image (URL)',
+    gemDescription: 'Description',
+    noListings: 'No items in stock',
+    deleteListing: 'Delete',
+    selectFromStock: 'Select from stock',
+    addToCalculation: 'Add to calculation',
   }
 }
 
@@ -289,6 +311,7 @@ interface GemstoneEntry { id: string; type: string; cut: string; carat: number; 
 interface CartItem { id: string; jewelryType: string; metal: string; metalWeight: number; gemstones: GemstoneEntry[]; total: number; engraving: string; rushOrder: boolean; notes: string; quoteId: string }
 interface Order { id: string; items: CartItem[]; customer: { name: string; email: string; phone: string }; total: number; date: string; status: 'pending' | 'confirmed' | 'completed' }
 interface Message { id: string; name: string; email: string; phone: string; message: string; date: string }
+interface GemListing { id: string; name: string; price: number; image: string; description: string; carat: number; cut: string }
 interface AdminSettings { laborRate: number; markup: number; taxRate: number; notificationEmail: string; bgColor: { r: number; g: number; b: number }; bgImage: string }
 
 function App() {
@@ -297,7 +320,7 @@ function App() {
 
   const [currentView, setCurrentView] = useState<'calculator' | 'cart' | 'contact' | 'admin'>('calculator')
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false)
-  const [adminTab, setAdminTab] = useState<'settings' | 'orders' | 'messages' | 'appearance'>('settings')
+  const [adminTab, setAdminTab] = useState<'settings' | 'orders' | 'messages' | 'appearance' | 'listings'>('settings')
   const [loginUsername, setLoginUsername] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
   const [loginError, setLoginError] = useState(false)
@@ -309,9 +332,11 @@ function App() {
   })
   const [settingsSaved, setSettingsSaved] = useState(false)
 
-  const [orders, setOrders] = useState<Order[]>(() => { const saved = localStorage.getItem('jewelry_orders'); return saved ? JSON.parse(saved) : [] })
-  const [messages, setMessages] = useState<Message[]>(() => { const saved = localStorage.getItem('jewelry_messages'); return saved ? JSON.parse(saved) : [] })
-  const [viewCount, setViewCount] = useState(() => { const saved = localStorage.getItem('jewelry_view_count'); return saved ? parseInt(saved) : 0 })
+    const [orders, setOrders] = useState<Order[]>(() => { const saved = localStorage.getItem('jewelry_orders'); return saved ? JSON.parse(saved) : [] })
+    const [messages, setMessages] = useState<Message[]>(() => { const saved = localStorage.getItem('jewelry_messages'); return saved ? JSON.parse(saved) : [] })
+    const [viewCount, setViewCount] = useState(() => { const saved = localStorage.getItem('jewelry_view_count'); return saved ? parseInt(saved) : 0 })
+    const [gemListings, setGemListings] = useState<GemListing[]>(() => { const saved = localStorage.getItem('jewelry_gem_listings'); return saved ? JSON.parse(saved) : [] })
+    const [newListing, setNewListing] = useState<Omit<GemListing, 'id'>>({ name: '', price: 0, image: '', description: '', carat: 1, cut: 'round_brilliant' })
 
   const [jewelryType, setJewelryType] = useState('ring_solitaire')
   const [jewelryCategory, setJewelryCategory] = useState('rings')
@@ -344,6 +369,7 @@ function App() {
   useEffect(() => { localStorage.setItem('jewelry_orders', JSON.stringify(orders)) }, [orders])
   useEffect(() => { localStorage.setItem('jewelry_messages', JSON.stringify(messages)) }, [messages])
   useEffect(() => { localStorage.setItem('jewelry_cart', JSON.stringify(cart)) }, [cart])
+  useEffect(() => { localStorage.setItem('jewelry_gem_listings', JSON.stringify(gemListings)) }, [gemListings])
 
   const handleLogin = () => {
     if (loginUsername === 'Blazenalex123' && loginPassword === 'Blazenalex123') {
@@ -395,6 +421,17 @@ function App() {
   }
 
   const saveAdminSettings = () => { setSettingsSaved(true); setTimeout(() => setSettingsSaved(false), 3000) }
+
+  const addGemListing = () => {
+    if (!newListing.name || newListing.price <= 0) return
+    const listing: GemListing = { ...newListing, id: Date.now().toString() }
+    setGemListings([...gemListings, listing])
+    setNewListing({ name: '', price: 0, image: '', description: '', carat: 1, cut: 'round_brilliant' })
+  }
+  const deleteGemListing = (id: string) => setGemListings(gemListings.filter(l => l.id !== id))
+  const addListingToCalculation = (listing: GemListing) => {
+    setGemstones([...gemstones, { id: Date.now().toString(), type: 'custom', cut: listing.cut, carat: listing.carat, quantity: 1 }])
+  }
 
   const isRing = jewelryType.startsWith('ring_')
   const isNecklace = jewelryType.startsWith('necklace_')
@@ -633,12 +670,43 @@ function App() {
                     <Button onClick={addToCart} className="w-full bg-green-600 hover:bg-green-700 text-white"><ShoppingCart className="w-4 h-4 mr-2" />{t.addToCart}</Button>
                   </CardContent>
                 </Card>
-                <Card className="bg-slate-800/50 border-purple-500/30 backdrop-blur"><CardContent className="py-4"><div className="flex items-center justify-center gap-2 text-slate-400"><Eye className="w-4 h-4" /><span>{t.viewCount}: {viewCount}</span></div></CardContent></Card>
-              </div>
-            </div>
-          )}
+                          <Card className="bg-slate-800/50 border-purple-500/30 backdrop-blur"><CardContent className="py-4"><div className="flex items-center justify-center gap-2 text-slate-400"><Eye className="w-4 h-4" /><span>{t.viewCount}: {viewCount}</span></div></CardContent></Card>
+                        </div>
+                      </div>
+                    )}
 
-          {currentView === 'cart' && (
+                    {currentView === 'calculator' && gemListings.length > 0 && (
+                      <Card className="bg-slate-800/50 border-purple-500/30 backdrop-blur mt-6">
+                        <CardHeader>
+                          <CardTitle className="text-white flex items-center gap-2"><Tag className="w-5 h-5 text-green-400" />{t.inStock}</CardTitle>
+                          <CardDescription className="text-slate-400">{t.selectFromStock}</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {gemListings.map((listing) => (
+                              <div key={listing.id} className="p-4 bg-slate-700/50 rounded-lg border border-slate-600 hover:border-purple-500 transition-all cursor-pointer" onClick={() => addListingToCalculation(listing)}>
+                                <div className="flex gap-4">
+                                  {listing.image ? (
+                                    <img src={listing.image} alt={listing.name} className="w-24 h-24 object-cover rounded-lg" />
+                                  ) : (
+                                    <div className="w-24 h-24 bg-slate-600 rounded-lg flex items-center justify-center"><Gem className="w-8 h-8 text-slate-400" /></div>
+                                  )}
+                                  <div className="flex-1">
+                                    <h3 className="text-white font-semibold">{listing.name}</h3>
+                                    <p className="text-green-400 font-bold text-lg">${listing.price.toFixed(2)}</p>
+                                    <p className="text-slate-400 text-sm">{listing.carat} ct - {GEMSTONE_CUTS[listing.cut]?.label}</p>
+                                    {listing.description && <p className="text-slate-500 text-xs mt-1 line-clamp-2">{listing.description}</p>}
+                                    <Button size="sm" className="mt-2 bg-purple-600 hover:bg-purple-700 text-xs"><Sparkles className="w-3 h-3 mr-1" />{t.addToCalculation}</Button>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {currentView === 'cart' && (
             <div className="max-w-4xl mx-auto space-y-6">
               <Card className="bg-slate-800/50 border-purple-500/30 backdrop-blur">
                 <CardHeader><CardTitle className="text-white flex items-center gap-2"><ShoppingCart className="w-5 h-5 text-purple-400" />{t.cart}</CardTitle></CardHeader>
@@ -723,12 +791,13 @@ function App() {
                     <Button variant="ghost" onClick={() => setIsAdminLoggedIn(false)} className="text-white"><LogOut className="w-4 h-4 mr-2" />{t.logout}</Button>
                   </div>
                   <Tabs value={adminTab} onValueChange={(v) => setAdminTab(v as typeof adminTab)}>
-                    <TabsList className="bg-slate-700/50">
-                      <TabsTrigger value="settings"><Settings className="w-4 h-4 mr-2" />{t.settings}</TabsTrigger>
-                      <TabsTrigger value="appearance"><Palette className="w-4 h-4 mr-2" />{t.appearance}</TabsTrigger>
-                      <TabsTrigger value="orders"><Package className="w-4 h-4 mr-2" />{t.orders} ({orders.length})</TabsTrigger>
-                      <TabsTrigger value="messages"><MessageSquare className="w-4 h-4 mr-2" />{t.messages} ({messages.length})</TabsTrigger>
-                    </TabsList>
+                                        <TabsList className="bg-slate-700/50">
+                                          <TabsTrigger value="settings"><Settings className="w-4 h-4 mr-2" />{t.settings}</TabsTrigger>
+                                          <TabsTrigger value="appearance"><Palette className="w-4 h-4 mr-2" />{t.appearance}</TabsTrigger>
+                                          <TabsTrigger value="listings"><Tag className="w-4 h-4 mr-2" />{t.listings} ({gemListings.length})</TabsTrigger>
+                                          <TabsTrigger value="orders"><Package className="w-4 h-4 mr-2" />{t.orders} ({orders.length})</TabsTrigger>
+                                          <TabsTrigger value="messages"><MessageSquare className="w-4 h-4 mr-2" />{t.messages} ({messages.length})</TabsTrigger>
+                                        </TabsList>
 
                     <TabsContent value="settings">
                       <Card className="bg-slate-800/50 border-purple-500/30 backdrop-blur">
@@ -760,13 +829,60 @@ function App() {
                             </div>
                             <div className="w-full h-12 rounded-lg border border-slate-600" style={{ backgroundColor: `rgb(${adminSettings.bgColor.r}, ${adminSettings.bgColor.g}, ${adminSettings.bgColor.b})` }} />
                           </div>
-                          <div className="space-y-2"><Label className="text-slate-300">{t.backgroundImage}</Label><Input value={adminSettings.bgImage} onChange={(e) => setAdminSettings({ ...adminSettings, bgImage: e.target.value })} placeholder="https://..." className="bg-slate-700 border-slate-600 text-white" /></div>
-                          <Button onClick={saveAdminSettings} className="bg-green-600 hover:bg-green-700">{t.saveSettings}</Button>
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
+                                              <div className="space-y-2"><Label className="text-slate-300">{t.backgroundImage}</Label><Input value={adminSettings.bgImage} onChange={(e) => setAdminSettings({ ...adminSettings, bgImage: e.target.value })} placeholder="https://..." className="bg-slate-700 border-slate-600 text-white" /></div>
+                                              <Button onClick={saveAdminSettings} className="bg-green-600 hover:bg-green-700">{t.saveSettings}</Button>
+                                            </CardContent>
+                                          </Card>
+                                        </TabsContent>
 
-                    <TabsContent value="orders">
+                                        <TabsContent value="listings">
+                                          <Card className="bg-slate-800/50 border-purple-500/30 backdrop-blur">
+                                            <CardContent className="pt-6 space-y-6">
+                                              <div className="space-y-4 p-4 bg-slate-700/30 rounded-lg border border-slate-600">
+                                                <h3 className="text-white font-semibold flex items-center gap-2"><ImagePlus className="w-5 h-5 text-purple-400" />{t.addListing}</h3>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                  <div className="space-y-2"><Label className="text-slate-300">{t.gemName}</Label><Input value={newListing.name} onChange={(e) => setNewListing({ ...newListing, name: e.target.value })} placeholder="Diamond 1ct..." className="bg-slate-700 border-slate-600 text-white" /></div>
+                                                  <div className="space-y-2"><Label className="text-slate-300">{t.gemPrice} ($)</Label><Input type="number" value={newListing.price} onChange={(e) => setNewListing({ ...newListing, price: parseFloat(e.target.value) || 0 })} className="bg-slate-700 border-slate-600 text-white" /></div>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                  <div className="space-y-2"><Label className="text-slate-300">{t.carat}</Label><Input type="number" value={newListing.carat} onChange={(e) => setNewListing({ ...newListing, carat: parseFloat(e.target.value) || 0 })} step={0.1} className="bg-slate-700 border-slate-600 text-white" /></div>
+                                                  <div className="space-y-2">
+                                                    <Label className="text-slate-300">{t.cut}</Label>
+                                                    <Select value={newListing.cut} onValueChange={(v) => setNewListing({ ...newListing, cut: v })}>
+                                                      <SelectTrigger className="bg-slate-700 border-slate-600 text-white"><SelectValue /></SelectTrigger>
+                                                      <SelectContent className="bg-slate-800 border-slate-600">
+                                                        {Object.entries(GEMSTONE_CUTS).map(([key, value]) => (<SelectItem key={key} value={key} className="text-white">{value.label}</SelectItem>))}
+                                                      </SelectContent>
+                                                    </Select>
+                                                  </div>
+                                                </div>
+                                                <div className="space-y-2"><Label className="text-slate-300">{t.gemImage}</Label><Input value={newListing.image} onChange={(e) => setNewListing({ ...newListing, image: e.target.value })} placeholder="https://..." className="bg-slate-700 border-slate-600 text-white" /></div>
+                                                <div className="space-y-2"><Label className="text-slate-300">{t.gemDescription}</Label><Textarea value={newListing.description} onChange={(e) => setNewListing({ ...newListing, description: e.target.value })} placeholder="..." className="bg-slate-700 border-slate-600 text-white" /></div>
+                                                <Button onClick={addGemListing} className="bg-purple-600 hover:bg-purple-700" disabled={!newListing.name || newListing.price <= 0}><ImagePlus className="w-4 h-4 mr-2" />{t.addListing}</Button>
+                                              </div>
+                                              {gemListings.length === 0 ? <p className="text-slate-400 text-center py-8">{t.noListings}</p> : (
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                  {gemListings.map((listing) => (
+                                                    <div key={listing.id} className="p-4 bg-slate-700/50 rounded-lg border border-slate-600">
+                                                      <div className="flex gap-4">
+                                                        {listing.image && <img src={listing.image} alt={listing.name} className="w-20 h-20 object-cover rounded-lg" />}
+                                                        <div className="flex-1">
+                                                          <h3 className="text-white font-semibold">{listing.name}</h3>
+                                                          <p className="text-purple-400 font-bold">${listing.price.toFixed(2)}</p>
+                                                          <p className="text-slate-400 text-sm">{listing.carat} ct - {GEMSTONE_CUTS[listing.cut]?.label}</p>
+                                                          {listing.description && <p className="text-slate-500 text-xs mt-1">{listing.description}</p>}
+                                                        </div>
+                                                        <Button variant="ghost" size="sm" onClick={() => deleteGemListing(listing.id)} className="text-red-400 hover:text-red-300"><Trash2 className="w-4 h-4" /></Button>
+                                                      </div>
+                                                    </div>
+                                                  ))}
+                                                </div>
+                                              )}
+                                            </CardContent>
+                                          </Card>
+                                        </TabsContent>
+
+                                        <TabsContent value="orders">
                       <Card className="bg-slate-800/50 border-purple-500/30 backdrop-blur">
                         <CardContent className="pt-6">
                           {orders.length === 0 ? <p className="text-slate-400 text-center py-8">{t.noOrders}</p> : (
