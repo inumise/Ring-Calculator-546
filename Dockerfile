@@ -12,20 +12,27 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build the app (base path defaults to '/' for Cloud Run)
+# Build the app (base path defaults to '/' for Railway/Cloud Run)
 RUN npm run build
 
 # Production stage
 FROM nginx:alpine
 
-# Copy custom nginx config
-COPY nginx.conf /etc/nginx/nginx.conf
+# Install envsubst for PORT substitution
+RUN apk add --no-cache gettext
+
+# Copy nginx config template
+COPY nginx.conf.template /etc/nginx/templates/default.conf.template
+
+# Copy entrypoint script
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
 # Copy built assets from build stage
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Expose port 8080 (Cloud Run default)
+# Expose port (Railway will set PORT env var)
 EXPOSE 8080
 
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Use entrypoint to substitute PORT and start nginx
+ENTRYPOINT ["/docker-entrypoint.sh"]
