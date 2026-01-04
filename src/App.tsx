@@ -12,7 +12,8 @@ import {
   Gem, CircleDot, Sparkles, DollarSign, 
   ShoppingCart, Settings, LogOut, Mail, Send, Trash2, 
   Eye, Globe, Palette, Lock, Menu, X, CheckCircle,
-  MessageSquare, Package, ImagePlus, Tag, Upload
+  MessageSquare, Package, ImagePlus, Tag, Upload,
+  User, Diamond, Crown, Calculator
 } from 'lucide-react'
 
 type Language = 'cs' | 'en'
@@ -117,6 +118,24 @@ const translations: Record<Language, Record<string, string>> = {
     deleteListing: 'Smazat',
     selectFromStock: 'Vybrat ze skladu',
     addToCalculation: 'Pridat do kalkulace',
+    aboutAlex: 'O Alexovi',
+    investmentGems: 'Investicni Drahokamy',
+    finishedJewelry: 'Hotove Sperky',
+    customCalculator: 'Kalkulacka na Zakazku',
+    welcomeTitle: 'Vitejte u Alexe',
+    welcomeSubtitle: 'Vase cesta k dokonalym sperkum',
+    aboutDescription: 'Alex je zkuseny klenotnik s vice nez 20 lety zkusenosti v oboru. Specializuje se na zakazkovou vyrobu sperku a investicni drahokamy nejvyssi kvality.',
+    servicesTitle: 'Nase Sluzby',
+    service1: 'Zakazkova vyroba sperku',
+    service2: 'Investicni drahokamy',
+    service3: 'Opravy a upravy sperku',
+    service4: 'Odborne poradenstvi',
+    investmentTitle: 'Investicni Drahokamy',
+    investmentSubtitle: 'Vyberte si z nasi nabidky certifikovanych drahokamu',
+    finishedTitle: 'Hotove Sperky',
+    finishedSubtitle: 'Prohlédnete si nasi kolekci hotovych sperku',
+    noFinishedItems: 'Zadne hotove sperky k dispozici',
+    marketplace: 'Trziste',
   },
   en: {
     title: 'Jewelry Cost Calculator',
@@ -217,6 +236,24 @@ const translations: Record<Language, Record<string, string>> = {
     deleteListing: 'Delete',
     selectFromStock: 'Select from stock',
     addToCalculation: 'Add to calculation',
+    aboutAlex: 'About Alex',
+    investmentGems: 'Investment Gems',
+    finishedJewelry: 'Finished Jewelry',
+    customCalculator: 'Custom Calculator',
+    welcomeTitle: 'Welcome to Alex',
+    welcomeSubtitle: 'Your path to perfect jewelry',
+    aboutDescription: 'Alex is an experienced jeweler with over 20 years of experience in the industry. He specializes in custom jewelry making and investment gemstones of the highest quality.',
+    servicesTitle: 'Our Services',
+    service1: 'Custom jewelry making',
+    service2: 'Investment gemstones',
+    service3: 'Jewelry repairs and modifications',
+    service4: 'Expert consultation',
+    investmentTitle: 'Investment Gemstones',
+    investmentSubtitle: 'Choose from our selection of certified gemstones',
+    finishedTitle: 'Finished Jewelry',
+    finishedSubtitle: 'Browse our collection of finished jewelry pieces',
+    noFinishedItems: 'No finished jewelry available',
+    marketplace: 'Marketplace',
   }
 }
 
@@ -318,7 +355,7 @@ function App() {
   const [language, setLanguage] = useState<Language>(() => (localStorage.getItem('jewelry_language') as Language) || 'cs')
   const t = translations[language]
 
-  const [currentView, setCurrentView] = useState<'calculator' | 'cart' | 'contact' | 'admin'>('calculator')
+  const [currentView, setCurrentView] = useState<'home' | 'investment' | 'finished' | 'calculator' | 'cart' | 'contact' | 'admin'>('home')
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false)
   const [adminTab, setAdminTab] = useState<'settings' | 'orders' | 'messages' | 'appearance' | 'listings'>('settings')
   const [loginUsername, setLoginUsername] = useState('')
@@ -468,8 +505,17 @@ function App() {
               </div>
 
               <nav className="hidden md:flex items-center gap-2">
+                <Button variant={currentView === 'home' ? 'default' : 'ghost'} onClick={() => setCurrentView('home')} className="text-white">
+                  <User className="w-4 h-4 mr-2" />{t.aboutAlex}
+                </Button>
+                <Button variant={currentView === 'investment' ? 'default' : 'ghost'} onClick={() => setCurrentView('investment')} className="text-white">
+                  <Diamond className="w-4 h-4 mr-2" />{t.investmentGems}
+                </Button>
+                <Button variant={currentView === 'finished' ? 'default' : 'ghost'} onClick={() => setCurrentView('finished')} className="text-white">
+                  <Crown className="w-4 h-4 mr-2" />{t.finishedJewelry}
+                </Button>
                 <Button variant={currentView === 'calculator' ? 'default' : 'ghost'} onClick={() => setCurrentView('calculator')} className="text-white">
-                  <DollarSign className="w-4 h-4 mr-2" />{t.calculator}
+                  <Calculator className="w-4 h-4 mr-2" />{t.customCalculator}
                 </Button>
                 <Button variant={currentView === 'cart' ? 'default' : 'ghost'} onClick={() => setCurrentView('cart')} className="text-white relative">
                   <ShoppingCart className="w-4 h-4 mr-2" />{t.cart}
@@ -497,7 +543,10 @@ function App() {
 
             {mobileMenuOpen && (
               <nav className="md:hidden mt-4 flex flex-col gap-2">
-                <Button variant="ghost" onClick={() => { setCurrentView('calculator'); setMobileMenuOpen(false) }} className="text-white justify-start"><DollarSign className="w-4 h-4 mr-2" /> {t.calculator}</Button>
+                <Button variant="ghost" onClick={() => { setCurrentView('home'); setMobileMenuOpen(false) }} className="text-white justify-start"><User className="w-4 h-4 mr-2" /> {t.aboutAlex}</Button>
+                <Button variant="ghost" onClick={() => { setCurrentView('investment'); setMobileMenuOpen(false) }} className="text-white justify-start"><Diamond className="w-4 h-4 mr-2" /> {t.investmentGems}</Button>
+                <Button variant="ghost" onClick={() => { setCurrentView('finished'); setMobileMenuOpen(false) }} className="text-white justify-start"><Crown className="w-4 h-4 mr-2" /> {t.finishedJewelry}</Button>
+                <Button variant="ghost" onClick={() => { setCurrentView('calculator'); setMobileMenuOpen(false) }} className="text-white justify-start"><Calculator className="w-4 h-4 mr-2" /> {t.customCalculator}</Button>
                 <Button variant="ghost" onClick={() => { setCurrentView('cart'); setMobileMenuOpen(false) }} className="text-white justify-start"><ShoppingCart className="w-4 h-4 mr-2" /> {t.cart} {cart.length > 0 && `(${cart.length})`}</Button>
                 <Button variant="ghost" onClick={() => { setCurrentView('contact'); setMobileMenuOpen(false) }} className="text-white justify-start"><Mail className="w-4 h-4 mr-2" /> {t.contact}</Button>
                 <Button variant="ghost" onClick={() => { setCurrentView('admin'); setMobileMenuOpen(false) }} className="text-white justify-start"><Lock className="w-4 h-4 mr-2" /> {t.admin}</Button>
@@ -514,6 +563,135 @@ function App() {
         </header>
 
         <main className="container mx-auto px-4 py-8">
+          {/* HOME - About Alex */}
+          {currentView === 'home' && (
+            <div className="max-w-4xl mx-auto space-y-8">
+              <Card className="bg-slate-800/50 border-purple-500/30 backdrop-blur">
+                <CardHeader className="text-center">
+                  <div className="mx-auto w-32 h-32 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mb-4">
+                    <User className="w-16 h-16 text-white" />
+                  </div>
+                  <CardTitle className="text-3xl text-white">{t.welcomeTitle}</CardTitle>
+                  <CardDescription className="text-purple-300 text-lg">{t.welcomeSubtitle}</CardDescription>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <p className="text-slate-300 text-lg leading-relaxed mb-8">{t.aboutDescription}</p>
+                  <Separator className="bg-purple-500/30 my-8" />
+                  <h3 className="text-xl font-semibold text-white mb-6">{t.servicesTitle}</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600">
+                      <Diamond className="w-8 h-8 text-purple-400 mx-auto mb-2" />
+                      <p className="text-slate-300">{t.service1}</p>
+                    </div>
+                    <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600">
+                      <Gem className="w-8 h-8 text-blue-400 mx-auto mb-2" />
+                      <p className="text-slate-300">{t.service2}</p>
+                    </div>
+                    <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600">
+                      <Settings className="w-8 h-8 text-green-400 mx-auto mb-2" />
+                      <p className="text-slate-300">{t.service3}</p>
+                    </div>
+                    <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600">
+                      <MessageSquare className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
+                      <p className="text-slate-300">{t.service4}</p>
+                    </div>
+                  </div>
+                  <div className="mt-8 flex flex-wrap justify-center gap-4">
+                    <Button onClick={() => setCurrentView('investment')} className="bg-purple-600 hover:bg-purple-700">
+                      <Diamond className="w-4 h-4 mr-2" />{t.investmentGems}
+                    </Button>
+                    <Button onClick={() => setCurrentView('calculator')} className="bg-green-600 hover:bg-green-700">
+                      <Calculator className="w-4 h-4 mr-2" />{t.customCalculator}
+                    </Button>
+                    <Button onClick={() => setCurrentView('contact')} variant="outline" className="border-purple-500 text-purple-400 hover:bg-purple-500/20">
+                      <Mail className="w-4 h-4 mr-2" />{t.contact}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="bg-slate-800/50 border-purple-500/30 backdrop-blur">
+                <CardContent className="py-4">
+                  <div className="flex items-center justify-center gap-2 text-slate-400">
+                    <Eye className="w-4 h-4" />
+                    <span>{t.viewCount}: {viewCount}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* INVESTMENT GEMS - Marketplace */}
+          {currentView === 'investment' && (
+            <div className="space-y-6">
+              <Card className="bg-slate-800/50 border-purple-500/30 backdrop-blur">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Diamond className="w-6 h-6 text-purple-400" />{t.investmentTitle}
+                  </CardTitle>
+                  <CardDescription className="text-slate-400">{t.investmentSubtitle}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {gemListings.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {gemListings.map((listing) => (
+                        <Card key={listing.id} className="bg-slate-700/50 border-slate-600 hover:border-purple-500 transition-all">
+                          <CardContent className="p-4">
+                            {listing.image ? (
+                              <img src={listing.image} alt={listing.name} className="w-full h-48 object-cover rounded-lg mb-4" />
+                            ) : (
+                              <div className="w-full h-48 bg-slate-600 rounded-lg flex items-center justify-center mb-4">
+                                <Gem className="w-16 h-16 text-slate-400" />
+                              </div>
+                            )}
+                            <h3 className="text-white font-semibold text-lg">{listing.name}</h3>
+                            <p className="text-green-400 font-bold text-2xl my-2">${listing.price.toFixed(2)}</p>
+                            <p className="text-slate-400 text-sm mb-2">{listing.carat} ct - {GEMSTONE_CUTS[listing.cut]?.label}</p>
+                            {listing.description && <p className="text-slate-500 text-sm mb-4">{listing.description}</p>}
+                            <Badge className="bg-green-600 text-white">{t.inStock}</Badge>
+                            <Button onClick={() => { addListingToCalculation(listing); setCurrentView('calculator') }} className="w-full mt-4 bg-purple-600 hover:bg-purple-700">
+                              <Calculator className="w-4 h-4 mr-2" />{t.addToCalculation}
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <Gem className="w-16 h-16 text-slate-500 mx-auto mb-4" />
+                      <p className="text-slate-400 text-lg">{t.noListings}</p>
+                      <p className="text-slate-500 text-sm mt-2">Admin can add listings in the admin panel</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* FINISHED JEWELRY */}
+          {currentView === 'finished' && (
+            <div className="space-y-6">
+              <Card className="bg-slate-800/50 border-purple-500/30 backdrop-blur">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Crown className="w-6 h-6 text-yellow-400" />{t.finishedTitle}
+                  </CardTitle>
+                  <CardDescription className="text-slate-400">{t.finishedSubtitle}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-12">
+                    <Crown className="w-16 h-16 text-slate-500 mx-auto mb-4" />
+                    <p className="text-slate-400 text-lg">{t.noFinishedItems}</p>
+                    <p className="text-slate-500 text-sm mt-2">Coming soon - finished jewelry pieces will be displayed here</p>
+                    <Button onClick={() => setCurrentView('calculator')} className="mt-6 bg-purple-600 hover:bg-purple-700">
+                      <Calculator className="w-4 h-4 mr-2" />{t.customCalculator}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* CALCULATOR */}
           {currentView === 'calculator' && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-6">
