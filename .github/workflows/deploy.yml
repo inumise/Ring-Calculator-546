@@ -29,6 +29,8 @@ jobs:
         run: npm ci
       - name: Build
         run: npm run build
+        env:
+          VITE_BASE_PATH: /Ring-Calculator-546/
       - name: Setup Pages
         uses: actions/configure-pages@v4
       - name: Upload artifact
