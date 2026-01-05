@@ -1,3 +1,3 @@
 #!/bin/bash
 npm run build
-npx serve -s dist -l ${PORT:-3000}
+npx serve -s dist -l tcp://0.0.0.0:$PORT
