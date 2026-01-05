@@ -1,38 +1,28 @@
 # Build stage
 FROM node:20-alpine AS build
-
 WORKDIR /app
 
-# Copy package files
 COPY package*.json ./
-
-# Install dependencies
 RUN npm ci
 
-# Copy source code
 COPY . .
-
-# Build the app (base path defaults to '/' for Railway/Cloud Run)
+ENV VITE_BASE_PATH=/
 RUN npm run build
 
-# Production stage
-FROM nginx:alpine
+# Runtime stage - use Node with serve (simpler than nginx)
+FROM node:20-alpine AS runtime
+WORKDIR /app
+ENV NODE_ENV=production
 
-# Install envsubst for PORT substitution
-RUN apk add --no-cache gettext
+# Copy package files and install only production deps
+COPY package*.json ./
+RUN npm ci --omit=dev
 
-# Copy nginx config template
-COPY nginx.conf.template /etc/nginx/templates/default.conf.template
+# Copy built assets
+COPY --from=build /app/dist ./dist
 
-# Copy entrypoint script
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+# Railway sets PORT env var
+EXPOSE 3000
 
-# Copy built assets from build stage
-COPY --from=build /app/dist /usr/share/nginx/html
-
-# Expose port (Railway will set PORT env var)
-EXPOSE 8080
-
-# Use entrypoint to substitute PORT and start nginx
-ENTRYPOINT ["/docker-entrypoint.sh"]
+# Start serve with SPA fallback, binding to 0.0.0.0 and $PORT
+CMD ["sh", "-c", "./node_modules/.bin/serve -s dist -l tcp://0.0.0.0:${PORT:-3000}"]
