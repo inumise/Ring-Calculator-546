@@ -17,6 +17,13 @@ import {
 } from 'lucide-react'
 
 type Language = 'cs' | 'en'
+type Currency = 'CZK' | 'USD' | 'EUR'
+
+const CURRENCY_RATES: Record<Currency, { rate: number; symbol: string; label: string }> = {
+  USD: { rate: 1, symbol: '$', label: 'USD' },
+  EUR: { rate: 0.92, symbol: '€', label: 'EUR' },
+  CZK: { rate: 23.5, symbol: 'Kč', label: 'CZK' }
+}
 
 const translations: Record<Language, Record<string, string>> = {
   cs: {
@@ -353,15 +360,24 @@ interface AdminSettings { laborRate: number; markup: number; taxRate: number; no
 
 function App() {
   const [language, setLanguage] = useState<Language>(() => (localStorage.getItem('jewelry_language') as Language) || 'cs')
+  const [currency, setCurrency] = useState<Currency>(() => (localStorage.getItem('jewelry_currency') as Currency) || 'CZK')
   const t = translations[language]
+  const currencyData = CURRENCY_RATES[currency]
+
+  const formatPrice = (usdPrice: number) => {
+    const converted = usdPrice * currencyData.rate
+    if (currency === 'CZK') return `${converted.toFixed(0)} ${currencyData.symbol}`
+    return `${currencyData.symbol}${converted.toFixed(2)}`
+  }
 
   const [currentView, setCurrentView] = useState<'home' | 'investment' | 'finished' | 'calculator' | 'cart' | 'contact' | 'admin'>('home')
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false)
-  const [adminTab, setAdminTab] = useState<'settings' | 'orders' | 'messages' | 'appearance' | 'listings'>('settings')
+  const [adminTab, setAdminTab] = useState<'settings' | 'orders' | 'messages' | 'appearance' | 'listings' | 'finished' | 'stats'>('settings')
   const [loginUsername, setLoginUsername] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
   const [loginError, setLoginError] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [isPageTransitioning, setIsPageTransitioning] = useState(false)
 
   const [adminSettings, setAdminSettings] = useState<AdminSettings>(() => {
     const saved = localStorage.getItem('jewelry_admin_settings')
@@ -402,11 +418,20 @@ function App() {
 
   useEffect(() => { const newCount = viewCount + 1; setViewCount(newCount); localStorage.setItem('jewelry_view_count', newCount.toString()) }, [])
   useEffect(() => { localStorage.setItem('jewelry_language', language) }, [language])
+  useEffect(() => { localStorage.setItem('jewelry_currency', currency) }, [currency])
   useEffect(() => { localStorage.setItem('jewelry_admin_settings', JSON.stringify(adminSettings)) }, [adminSettings])
   useEffect(() => { localStorage.setItem('jewelry_orders', JSON.stringify(orders)) }, [orders])
   useEffect(() => { localStorage.setItem('jewelry_messages', JSON.stringify(messages)) }, [messages])
   useEffect(() => { localStorage.setItem('jewelry_cart', JSON.stringify(cart)) }, [cart])
   useEffect(() => { localStorage.setItem('jewelry_gem_listings', JSON.stringify(gemListings)) }, [gemListings])
+
+  const handleViewChange = (view: typeof currentView) => {
+    setIsPageTransitioning(true)
+    setTimeout(() => {
+      setCurrentView(view)
+      setIsPageTransitioning(false)
+    }, 150)
+  }
 
   const handleLogin = () => {
     if (loginUsername === 'Blazenalex123' && loginPassword === 'Blazenalex123') {
@@ -492,77 +517,117 @@ function App() {
 
   return (
     <div className="min-h-screen" style={bgStyle}>
-      <div className="min-h-screen bg-gradient-to-br from-slate-900/90 via-purple-900/80 to-slate-900/90">
-        <header className="border-b border-purple-500/30 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900/95 via-purple-900/90 to-slate-900/95">
+        {/* Animated background effects */}
+        <div className="fixed inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+          <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+        </div>
+
+        <header className="border-b border-purple-500/20 bg-slate-900/80 backdrop-blur-xl sticky top-0 z-50 shadow-lg shadow-purple-500/5">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Gem className="w-8 h-8 text-purple-400" />
+              <div className="flex items-center gap-3 cursor-pointer group" onClick={() => handleViewChange('home')}>
+                <div className="relative">
+                  <Diamond className="w-10 h-10 text-purple-400 group-hover:text-purple-300 transition-all duration-300 group-hover:scale-110" />
+                  <Sparkles className="w-4 h-4 text-yellow-400 absolute -top-1 -right-1 animate-pulse" />
+                </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-white">{t.title}</h1>
-                  <p className="text-xs text-purple-300">{t.subtitle}</p>
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-purple-400 bg-clip-text text-transparent">{t.title}</h1>
+                  <p className="text-xs text-purple-300/80">{t.subtitle}</p>
                 </div>
               </div>
 
-              <nav className="hidden md:flex items-center gap-2">
-                <Button variant={currentView === 'home' ? 'default' : 'ghost'} onClick={() => setCurrentView('home')} className="text-white">
+              <nav className="hidden lg:flex items-center gap-1">
+                <Button variant={currentView === 'home' ? 'default' : 'ghost'} onClick={() => handleViewChange('home')} className={`text-white transition-all duration-300 ${currentView === 'home' ? 'bg-purple-600/80 shadow-lg shadow-purple-500/30' : 'hover:bg-purple-500/20'}`}>
                   <User className="w-4 h-4 mr-2" />{t.aboutAlex}
                 </Button>
-                <Button variant={currentView === 'investment' ? 'default' : 'ghost'} onClick={() => setCurrentView('investment')} className="text-white">
+                <Button variant={currentView === 'investment' ? 'default' : 'ghost'} onClick={() => handleViewChange('investment')} className={`text-white transition-all duration-300 ${currentView === 'investment' ? 'bg-purple-600/80 shadow-lg shadow-purple-500/30' : 'hover:bg-purple-500/20'}`}>
                   <Diamond className="w-4 h-4 mr-2" />{t.investmentGems}
                 </Button>
-                <Button variant={currentView === 'finished' ? 'default' : 'ghost'} onClick={() => setCurrentView('finished')} className="text-white">
+                <Button variant={currentView === 'finished' ? 'default' : 'ghost'} onClick={() => handleViewChange('finished')} className={`text-white transition-all duration-300 ${currentView === 'finished' ? 'bg-purple-600/80 shadow-lg shadow-purple-500/30' : 'hover:bg-purple-500/20'}`}>
                   <Crown className="w-4 h-4 mr-2" />{t.finishedJewelry}
                 </Button>
-                <Button variant={currentView === 'calculator' ? 'default' : 'ghost'} onClick={() => setCurrentView('calculator')} className="text-white">
+                <Button variant={currentView === 'calculator' ? 'default' : 'ghost'} onClick={() => handleViewChange('calculator')} className={`text-white transition-all duration-300 ${currentView === 'calculator' ? 'bg-purple-600/80 shadow-lg shadow-purple-500/30' : 'hover:bg-purple-500/20'}`}>
                   <Calculator className="w-4 h-4 mr-2" />{t.customCalculator}
                 </Button>
-                <Button variant={currentView === 'cart' ? 'default' : 'ghost'} onClick={() => setCurrentView('cart')} className="text-white relative">
+                <Button variant={currentView === 'cart' ? 'default' : 'ghost'} onClick={() => handleViewChange('cart')} className={`text-white relative transition-all duration-300 ${currentView === 'cart' ? 'bg-purple-600/80 shadow-lg shadow-purple-500/30' : 'hover:bg-purple-500/20'}`}>
                   <ShoppingCart className="w-4 h-4 mr-2" />{t.cart}
-                  {cart.length > 0 && <Badge className="absolute -top-2 -right-2 bg-pink-500">{cart.length}</Badge>}
+                  {cart.length > 0 && <Badge className="absolute -top-2 -right-2 bg-gradient-to-r from-pink-500 to-purple-500 animate-pulse">{cart.length}</Badge>}
                 </Button>
-                <Button variant={currentView === 'contact' ? 'default' : 'ghost'} onClick={() => setCurrentView('contact')} className="text-white">
+                <Button variant={currentView === 'contact' ? 'default' : 'ghost'} onClick={() => handleViewChange('contact')} className={`text-white transition-all duration-300 ${currentView === 'contact' ? 'bg-purple-600/80 shadow-lg shadow-purple-500/30' : 'hover:bg-purple-500/20'}`}>
                   <Mail className="w-4 h-4 mr-2" />{t.contact}
                 </Button>
-                <Button variant={currentView === 'admin' ? 'default' : 'ghost'} onClick={() => setCurrentView('admin')} className="text-white">
+                <Button variant={currentView === 'admin' ? 'default' : 'ghost'} onClick={() => handleViewChange('admin')} className={`text-white transition-all duration-300 ${currentView === 'admin' ? 'bg-purple-600/80 shadow-lg shadow-purple-500/30' : 'hover:bg-purple-500/20'}`}>
                   <Lock className="w-4 h-4 mr-2" />{t.admin}
                 </Button>
-                <Select value={language} onValueChange={(v) => setLanguage(v as Language)}>
-                  <SelectTrigger className="w-28 bg-slate-800 border-slate-600 text-white"><Globe className="w-4 h-4 mr-2" /><SelectValue /></SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-600">
-                    <SelectItem value="cs" className="text-white">{t.czech}</SelectItem>
-                    <SelectItem value="en" className="text-white">{t.english}</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center gap-2 ml-2 pl-2 border-l border-purple-500/30">
+                  <Select value={currency} onValueChange={(v) => setCurrency(v as Currency)}>
+                    <SelectTrigger className="w-24 bg-slate-800/50 border-purple-500/30 text-white hover:bg-slate-700/50 transition-colors">
+                      <DollarSign className="w-4 h-4 mr-1 text-green-400" />
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-800 border-purple-500/30">
+                      {Object.entries(CURRENCY_RATES).map(([key, { label }]) => (
+                        <SelectItem key={key} value={key} className="text-white hover:bg-purple-500/20">{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={language} onValueChange={(v) => setLanguage(v as Language)}>
+                    <SelectTrigger className="w-28 bg-slate-800/50 border-purple-500/30 text-white hover:bg-slate-700/50 transition-colors">
+                      <Globe className="w-4 h-4 mr-1 text-blue-400" />
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-800 border-purple-500/30">
+                      <SelectItem value="cs" className="text-white hover:bg-purple-500/20">{t.czech}</SelectItem>
+                      <SelectItem value="en" className="text-white hover:bg-purple-500/20">{t.english}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </nav>
 
-              <Button variant="ghost" className="md:hidden text-white" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+              <Button variant="ghost" className="lg:hidden text-white" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
                 {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </Button>
             </div>
 
             {mobileMenuOpen && (
-              <nav className="md:hidden mt-4 flex flex-col gap-2">
-                <Button variant="ghost" onClick={() => { setCurrentView('home'); setMobileMenuOpen(false) }} className="text-white justify-start"><User className="w-4 h-4 mr-2" /> {t.aboutAlex}</Button>
-                <Button variant="ghost" onClick={() => { setCurrentView('investment'); setMobileMenuOpen(false) }} className="text-white justify-start"><Diamond className="w-4 h-4 mr-2" /> {t.investmentGems}</Button>
-                <Button variant="ghost" onClick={() => { setCurrentView('finished'); setMobileMenuOpen(false) }} className="text-white justify-start"><Crown className="w-4 h-4 mr-2" /> {t.finishedJewelry}</Button>
-                <Button variant="ghost" onClick={() => { setCurrentView('calculator'); setMobileMenuOpen(false) }} className="text-white justify-start"><Calculator className="w-4 h-4 mr-2" /> {t.customCalculator}</Button>
-                <Button variant="ghost" onClick={() => { setCurrentView('cart'); setMobileMenuOpen(false) }} className="text-white justify-start"><ShoppingCart className="w-4 h-4 mr-2" /> {t.cart} {cart.length > 0 && `(${cart.length})`}</Button>
-                <Button variant="ghost" onClick={() => { setCurrentView('contact'); setMobileMenuOpen(false) }} className="text-white justify-start"><Mail className="w-4 h-4 mr-2" /> {t.contact}</Button>
-                <Button variant="ghost" onClick={() => { setCurrentView('admin'); setMobileMenuOpen(false) }} className="text-white justify-start"><Lock className="w-4 h-4 mr-2" /> {t.admin}</Button>
-                <Select value={language} onValueChange={(v) => setLanguage(v as Language)}>
-                  <SelectTrigger className="bg-slate-800 border-slate-600 text-white"><Globe className="w-4 h-4 mr-2" /><SelectValue /></SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-600">
-                    <SelectItem value="cs" className="text-white">{t.czech}</SelectItem>
-                    <SelectItem value="en" className="text-white">{t.english}</SelectItem>
-                  </SelectContent>
-                </Select>
+              <nav className="lg:hidden mt-4 flex flex-col gap-2 pb-4">
+                <Button variant="ghost" onClick={() => { handleViewChange('home'); setMobileMenuOpen(false) }} className={`text-white justify-start ${currentView === 'home' ? 'bg-purple-600/50' : ''}`}><User className="w-4 h-4 mr-2" /> {t.aboutAlex}</Button>
+                <Button variant="ghost" onClick={() => { handleViewChange('investment'); setMobileMenuOpen(false) }} className={`text-white justify-start ${currentView === 'investment' ? 'bg-purple-600/50' : ''}`}><Diamond className="w-4 h-4 mr-2" /> {t.investmentGems}</Button>
+                <Button variant="ghost" onClick={() => { handleViewChange('finished'); setMobileMenuOpen(false) }} className={`text-white justify-start ${currentView === 'finished' ? 'bg-purple-600/50' : ''}`}><Crown className="w-4 h-4 mr-2" /> {t.finishedJewelry}</Button>
+                <Button variant="ghost" onClick={() => { handleViewChange('calculator'); setMobileMenuOpen(false) }} className={`text-white justify-start ${currentView === 'calculator' ? 'bg-purple-600/50' : ''}`}><Calculator className="w-4 h-4 mr-2" /> {t.customCalculator}</Button>
+                <Button variant="ghost" onClick={() => { handleViewChange('cart'); setMobileMenuOpen(false) }} className={`text-white justify-start ${currentView === 'cart' ? 'bg-purple-600/50' : ''}`}><ShoppingCart className="w-4 h-4 mr-2" /> {t.cart} {cart.length > 0 && `(${cart.length})`}</Button>
+                <Button variant="ghost" onClick={() => { handleViewChange('contact'); setMobileMenuOpen(false) }} className={`text-white justify-start ${currentView === 'contact' ? 'bg-purple-600/50' : ''}`}><Mail className="w-4 h-4 mr-2" /> {t.contact}</Button>
+                <Button variant="ghost" onClick={() => { handleViewChange('admin'); setMobileMenuOpen(false) }} className={`text-white justify-start ${currentView === 'admin' ? 'bg-purple-600/50' : ''}`}><Lock className="w-4 h-4 mr-2" /> {t.admin}</Button>
+                <div className="flex gap-2 mt-2">
+                  <Select value={currency} onValueChange={(v) => setCurrency(v as Currency)}>
+                    <SelectTrigger className="flex-1 bg-slate-800/50 border-purple-500/30 text-white">
+                      <DollarSign className="w-4 h-4 mr-1" /><SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-800 border-purple-500/30">
+                      {Object.entries(CURRENCY_RATES).map(([key, { label }]) => (
+                        <SelectItem key={key} value={key} className="text-white">{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={language} onValueChange={(v) => setLanguage(v as Language)}>
+                    <SelectTrigger className="flex-1 bg-slate-800/50 border-purple-500/30 text-white">
+                      <Globe className="w-4 h-4 mr-1" /><SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-800 border-purple-500/30">
+                      <SelectItem value="cs" className="text-white">{t.czech}</SelectItem>
+                      <SelectItem value="en" className="text-white">{t.english}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </nav>
             )}
           </div>
         </header>
 
-        <main className="container mx-auto px-4 py-8">
+        <main className={`container mx-auto px-4 py-8 relative z-10 transition-all duration-300 ${isPageTransitioning ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'}`}>
           {/* HOME - About Alex */}
           {currentView === 'home' && (
             <div className="max-w-4xl mx-auto space-y-8">
@@ -849,17 +914,17 @@ function App() {
                     <CardDescription className="text-purple-200">{JEWELRY_TYPES[jewelryType]?.label} - {METAL_PRICES[metal]?.label}</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="p-3 bg-slate-800/50 rounded-lg"><div className="flex justify-between items-center"><span className="text-slate-300">{t.metalCost}</span><span className="text-white font-semibold">${calculations.metalCost.toFixed(2)}</span></div></div>
-                    <div className="p-3 bg-slate-800/50 rounded-lg"><div className="flex justify-between items-center"><span className="text-slate-300">{t.gemstoneCost}</span><span className="text-white font-semibold">${calculations.totalGemCost.toFixed(2)}</span></div></div>
-                    <div className="p-3 bg-slate-800/50 rounded-lg"><div className="flex justify-between items-center"><span className="text-slate-300">{t.laborCost}</span><span className="text-white font-semibold">${calculations.laborCost.toFixed(2)}</span></div></div>
-                    {rushOrder && <div className="p-3 bg-orange-800/50 rounded-lg"><div className="flex justify-between items-center"><span className="text-orange-300">{t.rushFee}</span><span className="text-white font-semibold">${calculations.rushFee.toFixed(2)}</span></div></div>}
+                    <div className="p-3 bg-slate-800/50 rounded-lg hover:bg-slate-700/50 transition-colors"><div className="flex justify-between items-center"><span className="text-slate-300">{t.metalCost}</span><span className="text-white font-semibold">{formatPrice(calculations.metalCost)}</span></div></div>
+                    <div className="p-3 bg-slate-800/50 rounded-lg hover:bg-slate-700/50 transition-colors"><div className="flex justify-between items-center"><span className="text-slate-300">{t.gemstoneCost}</span><span className="text-white font-semibold">{formatPrice(calculations.totalGemCost)}</span></div></div>
+                    <div className="p-3 bg-slate-800/50 rounded-lg hover:bg-slate-700/50 transition-colors"><div className="flex justify-between items-center"><span className="text-slate-300">{t.laborCost}</span><span className="text-white font-semibold">{formatPrice(calculations.laborCost)}</span></div></div>
+                    {rushOrder && <div className="p-3 bg-orange-800/50 rounded-lg"><div className="flex justify-between items-center"><span className="text-orange-300">{t.rushFee}</span><span className="text-white font-semibold">{formatPrice(calculations.rushFee)}</span></div></div>}
                     <Separator className="bg-slate-600" />
-                    <div className="flex justify-between items-center"><span className="text-slate-300">{t.subtotal}</span><span className="text-white">${calculations.subtotal.toFixed(2)}</span></div>
-                    <div className="flex justify-between items-center"><span className="text-slate-300">{t.markup} ({adminSettings.markup}%)</span><span className="text-white">${calculations.markupAmount.toFixed(2)}</span></div>
-                    <div className="flex justify-between items-center"><span className="text-slate-300">{t.tax} ({adminSettings.taxRate}%)</span><span className="text-white">${calculations.taxAmount.toFixed(2)}</span></div>
+                    <div className="flex justify-between items-center"><span className="text-slate-300">{t.subtotal}</span><span className="text-white">{formatPrice(calculations.subtotal)}</span></div>
+                    <div className="flex justify-between items-center"><span className="text-slate-300">{t.markup} ({adminSettings.markup}%)</span><span className="text-white">{formatPrice(calculations.markupAmount)}</span></div>
+                    <div className="flex justify-between items-center"><span className="text-slate-300">{t.tax} ({adminSettings.taxRate}%)</span><span className="text-white">{formatPrice(calculations.taxAmount)}</span></div>
                     <Separator className="bg-purple-500/50" />
-                    <div className="p-4 bg-gradient-to-r from-purple-600/50 to-pink-600/50 rounded-lg"><div className="flex justify-between items-center"><span className="text-white text-lg font-semibold">{t.totalPrice}</span><span className="text-3xl font-bold text-white">${calculations.total.toFixed(2)}</span></div></div>
-                    <Button onClick={addToCart} className="w-full bg-green-600 hover:bg-green-700 text-white"><ShoppingCart className="w-4 h-4 mr-2" />{t.addToCart}</Button>
+                    <div className="p-4 bg-gradient-to-r from-purple-600/50 to-pink-600/50 rounded-lg shadow-lg shadow-purple-500/20"><div className="flex justify-between items-center"><span className="text-white text-lg font-semibold">{t.totalPrice}</span><span className="text-3xl font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">{formatPrice(calculations.total)}</span></div></div>
+                    <Button onClick={addToCart} className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white shadow-lg shadow-green-500/20 transition-all duration-300"><ShoppingCart className="w-4 h-4 mr-2" />{t.addToCart}</Button>
                   </CardContent>
                 </Card>
                           <Card className="bg-slate-800/50 border-purple-500/30 backdrop-blur"><CardContent className="py-4"><div className="flex items-center justify-center gap-2 text-slate-400"><Eye className="w-4 h-4" /><span>{t.viewCount}: {viewCount}</span></div></CardContent></Card>
@@ -885,10 +950,10 @@ function App() {
                                   )}
                                   <div className="flex-1">
                                     <h3 className="text-white font-semibold">{listing.name}</h3>
-                                    <p className="text-green-400 font-bold text-lg">${listing.price.toFixed(2)}</p>
+                                    <p className="text-green-400 font-bold text-lg">{formatPrice(listing.price)}</p>
                                     <p className="text-slate-400 text-sm">{listing.carat} ct - {GEMSTONE_CUTS[listing.cut]?.label}</p>
                                     {listing.description && <p className="text-slate-500 text-xs mt-1 line-clamp-2">{listing.description}</p>}
-                                    <Button size="sm" className="mt-2 bg-purple-600 hover:bg-purple-700 text-xs"><Sparkles className="w-3 h-3 mr-1" />{t.addToCalculation}</Button>
+                                    <Button size="sm" className="mt-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-xs transition-all duration-300"><Sparkles className="w-3 h-3 mr-1" />{t.addToCalculation}</Button>
                                   </div>
                                 </div>
                               </div>
@@ -918,14 +983,14 @@ function App() {
                               {item.rushOrder && <Badge className="bg-orange-600 mt-1">{t.rushOrder}</Badge>}
                             </div>
                             <div className="text-right">
-                              <p className="text-white font-bold text-xl">${item.total.toFixed(2)}</p>
-                              <Button variant="ghost" size="sm" onClick={() => removeFromCart(item.id)} className="text-red-400"><Trash2 className="w-4 h-4" /></Button>
+                              <p className="text-white font-bold text-xl">{formatPrice(item.total)}</p>
+                              <Button variant="ghost" size="sm" onClick={() => removeFromCart(item.id)} className="text-red-400 hover:text-red-300 transition-colors"><Trash2 className="w-4 h-4" /></Button>
                             </div>
                           </div>
                         </div>
                       ))}
                       <Separator className="bg-slate-600" />
-                      <div className="flex justify-between items-center text-xl"><span className="text-white font-semibold">{t.total}:</span><span className="text-white font-bold">${cart.reduce((sum, item) => sum + item.total, 0).toFixed(2)}</span></div>
+                      <div className="flex justify-between items-center text-xl"><span className="text-white font-semibold">{t.total}:</span><span className="text-white font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">{formatPrice(cart.reduce((sum, item) => sum + item.total, 0))}</span></div>
                       <div className="space-y-4 mt-6">
                         <h3 className="text-white font-semibold">{t.contact}</h3>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
